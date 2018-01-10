@@ -1,4 +1,4 @@
-import { ViewPortInstruction, RouteConfig, ViewPort, LifecycleArguments, ViewPortComponent } from './interfaces';
+import { ViewPortInstruction, RouteConfig, LifecycleArguments, ViewPortComponent } from './interfaces';
 import { Router } from './router';
 import { ActivationStrategyType, InternalActivationStrategy } from './activation-strategy';
 
@@ -238,7 +238,7 @@ export class NavigationInstruction {
    * Finalize a viewport instruction
    * @internal
    */
-  _commitChanges(waitToSwap: boolean): Promise<void> {
+  _commitChanges(waitToSwap: boolean): Promise<(() => void)[]> {
     let router = this.router;
     router.currentInstruction = this;
 
@@ -251,8 +251,8 @@ export class NavigationInstruction {
 
     router.refreshNavigation();
 
-    let loads: Promise<void>[] = [];
-    let delaySwaps: ISwapPlan[] = [];
+    let loads: Promise<(() => void)[]>[] = [];
+    let delaySwaps: (() => void)[] = [];
     let viewPortInstructions: Record<string, ViewPortInstruction> = this.viewPortInstructions;
 
     for (let viewPortName in viewPortInstructions) {
@@ -269,7 +269,7 @@ export class NavigationInstruction {
           loads.push(childNavInstruction._commitChanges(waitToSwap));
         } else {
           if (waitToSwap) {
-            delaySwaps.push({ viewPort, viewPortInstruction });
+            delaySwaps.push(() => { viewPort.swap(viewPortInstruction); });
           }
           loads.push(
             viewPort
@@ -287,13 +287,16 @@ export class NavigationInstruction {
       }
     }
 
-    return Promise
-      .all(loads)
-      .then(() => {
-        delaySwaps.forEach(x => x.viewPort.swap(x.viewPortInstruction));
-        return null;
-      })
-      .then(() => prune(this));
+    const promise = loads.reduce((chain, load) => {
+       return chain.then(() => load).then(_delaySwaps => {
+         if (_delaySwaps && _delaySwaps.length) delaySwaps.push(..._delaySwaps);
+       });
+     }, Promise.resolve());
+
+     return promise.then(() => {
+       delaySwaps.push(() => prune(this));
+       return delaySwaps;
+     });
   }
 
   /**@internal */
@@ -345,8 +348,3 @@ const prune = (instruction: NavigationInstruction): void => {
   instruction.previousInstruction = null;
   instruction.plan = null;
 };
-
-interface ISwapPlan {
-  viewPort: ViewPort;
-  viewPortInstruction: ViewPortInstruction;
-}
