@@ -1,42 +1,68 @@
-define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-injection', 'aurelia-history', 'aurelia-route-recognizer', 'aurelia-event-aggregator'], function (exports, LogManager, aureliaDependencyInjection, aureliaHistory, aureliaRouteRecognizer, aureliaEventAggregator) { 'use strict';
+define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-injection', 'aurelia-history', 'aurelia-route-recognizer', 'aurelia-event-aggregator'], (function (exports, LogManager, aureliaDependencyInjection, aureliaHistory, aureliaRouteRecognizer, aureliaEventAggregator) { 'use strict';
+
+    function _interopNamespace(e) {
+        if (e && e.__esModule) return e;
+        var n = Object.create(null);
+        if (e) {
+            Object.keys(e).forEach(function (k) {
+                if (k !== 'default') {
+                    var d = Object.getOwnPropertyDescriptor(e, k);
+                    Object.defineProperty(n, k, d.get ? d : {
+                        enumerable: true,
+                        get: function () { return e[k]; }
+                    });
+                }
+            });
+        }
+        n["default"] = e;
+        return Object.freeze(n);
+    }
+
+    var LogManager__namespace = /*#__PURE__*/_interopNamespace(LogManager);
 
     /*! *****************************************************************************
-    Copyright (c) Microsoft Corporation. All rights reserved.
-    Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-    this file except in compliance with the License. You may obtain a copy of the
-    License at http://www.apache.org/licenses/LICENSE-2.0
+    Copyright (c) Microsoft Corporation.
 
-    THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-    KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
-    WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
-    MERCHANTABLITY OR NON-INFRINGEMENT.
+    Permission to use, copy, modify, and/or distribute this software for any
+    purpose with or without fee is hereby granted.
 
-    See the Apache Version 2.0 License for specific language governing permissions
-    and limitations under the License.
+    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+    REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+    AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+    INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+    LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+    OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+    PERFORMANCE OF THIS SOFTWARE.
     ***************************************************************************** */
     /* global Reflect, Promise */
 
     var extendStatics = function(d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
 
     function __extends(d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     }
 
-    /**
-     * Class used to represent an instruction during a navigation.
-     */
-    var NavigationInstruction = /** @class */ (function () {
+    function __spreadArray(to, from, pack) {
+        if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+            if (ar || !(i in from)) {
+                if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+                ar[i] = from[i];
+            }
+        }
+        return to.concat(ar || Array.prototype.slice.call(from));
+    }
+
+    var NavigationInstruction = (function () {
         function NavigationInstruction(init) {
-            /**
-             * Current built viewport plan of this nav instruction
-             */
             this.plan = null;
             this.options = {};
             Object.assign(this, init);
@@ -47,18 +73,14 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             do {
                 var currentParams = Object.assign({}, current.params);
                 if (current.config && current.config.hasChildRouter) {
-                    // remove the param for the injected child route segment
                     delete currentParams[current.getWildCardName()];
                 }
                 ancestorParams.unshift(currentParams);
                 current = current.parentInstruction;
             } while (current);
-            var allParams = Object.assign.apply(Object, [{}, this.queryParams].concat(ancestorParams));
+            var allParams = Object.assign.apply(Object, __spreadArray([{}, this.queryParams], ancestorParams, false));
             this.lifecycleArgs = [allParams, this.config, this];
         }
-        /**
-         * Gets an array containing this instruction and all child instructions for the current navigation.
-         */
         NavigationInstruction.prototype.getAllInstructions = function () {
             var instructions = [this];
             var viewPortInstructions = this.viewPortInstructions;
@@ -70,10 +92,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
             return instructions;
         };
-        /**
-         * Gets an array containing the instruction and all child instructions for the previous navigation.
-         * Previous instructions are no longer available after navigation completes.
-         */
         NavigationInstruction.prototype.getAllPreviousInstructions = function () {
             return this.getAllInstructions().map(function (c) { return c.previousInstruction; }).filter(function (c) { return c; });
         };
@@ -104,19 +122,11 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
             return this.viewPortInstructions[viewPortName] = viewPortInstruction;
         };
-        /**
-         * Gets the name of the route pattern's wildcard parameter, if applicable.
-         */
         NavigationInstruction.prototype.getWildCardName = function () {
-            // todo: potential issue, or at least unsafe typings
             var configRoute = this.config.route;
             var wildcardIndex = configRoute.lastIndexOf('*');
             return configRoute.substr(wildcardIndex + 1);
         };
-        /**
-         * Gets the path and query string created by filling the route
-         * pattern's wildcard parameter with the matching param.
-         */
         NavigationInstruction.prototype.getWildcardPath = function () {
             var wildcardName = this.getWildCardName();
             var path = this.params[wildcardName] || '';
@@ -126,9 +136,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
             return path;
         };
-        /**
-         * Gets the instruction's base URL, accounting for wildcard route parameters.
-         */
         NavigationInstruction.prototype.getBaseUrl = function () {
             var _this = this;
             var $encodeURI = encodeURI;
@@ -152,10 +159,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
             return $encodeURI(fragment.substr(0, fragment.lastIndexOf(path)));
         };
-        /**
-         * Finalize a viewport instruction
-         * @internal
-         */
         NavigationInstruction.prototype._commitChanges = function (waitToSwap) {
             var _this = this;
             var router = this.router;
@@ -173,16 +176,16 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 var viewPortInstruction = viewPortInstructions[viewPortName];
                 var viewPort = router.viewPorts[viewPortName];
                 if (!viewPort) {
-                    throw new Error("There was no router-view found in the view for " + viewPortInstruction.moduleId + ".");
+                    throw new Error("There was no router-view found in the view for ".concat(viewPortInstruction.moduleId, "."));
                 }
                 var childNavInstruction = viewPortInstruction.childNavigationInstruction;
-                if (viewPortInstruction.strategy === "replace" /* Replace */) {
+                if (viewPortInstruction.strategy === "replace") {
                     if (childNavInstruction && childNavInstruction.parentCatchHandler) {
                         loads.push(childNavInstruction._commitChanges(waitToSwap));
                     }
                     else {
                         if (waitToSwap) {
-                            delaySwaps.push({ viewPort: viewPort, viewPortInstruction: viewPortInstruction });
+                            delaySwaps.push(function () { viewPort.swap(viewPortInstruction); });
                         }
                         loads.push(viewPort
                             .process(viewPortInstruction, waitToSwap)
@@ -200,15 +203,17 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             for (var viewPortName in viewPortInstructions) {
                 _loop_1(viewPortName);
             }
-            return Promise
-                .all(loads)
-                .then(function () {
-                delaySwaps.forEach(function (x) { return x.viewPort.swap(x.viewPortInstruction); });
-                return null;
-            })
-                .then(function () { return prune(_this); });
+            var promise = loads.reduce(function (chain, load) {
+                return chain.then(function () { return load; }).then(function (_delaySwaps) {
+                    if (_delaySwaps && _delaySwaps.length)
+                        delaySwaps.push.apply(delaySwaps, _delaySwaps);
+                });
+            }, Promise.resolve());
+            return promise.then(function () {
+                delaySwaps.push(function () { return prune(_this); });
+                return delaySwaps;
+            });
         };
-        /**@internal */
         NavigationInstruction.prototype._updateTitle = function () {
             var router = this.router;
             var title = this._buildTitle(router.titleSeparator);
@@ -216,7 +221,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 router.history.setTitle(title);
             }
         };
-        /**@internal */
         NavigationInstruction.prototype._buildTitle = function (separator) {
             if (separator === void 0) { separator = ' | '; }
             var title = '';
@@ -252,45 +256,17 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         instruction.plan = null;
     };
 
-    /**
-    * Class for storing and interacting with a route's navigation settings.
-    */
-    var NavModel = /** @class */ (function () {
+    var NavModel = (function () {
         function NavModel(router, relativeHref) {
-            /**
-            * True if this nav item is currently active.
-            */
             this.isActive = false;
-            /**
-            * The title.
-            */
             this.title = null;
-            /**
-            * This nav item's absolute href.
-            */
             this.href = null;
-            /**
-            * This nav item's relative href.
-            */
             this.relativeHref = null;
-            /**
-            * Data attached to the route at configuration time.
-            */
             this.settings = {};
-            /**
-            * The route config.
-            */
             this.config = null;
             this.router = router;
             this.relativeHref = relativeHref;
         }
-        /**
-        * Sets the route's title and updates document.title.
-        *  If the a navigation is in progress, the change will be applied
-        *  to document.title when the navigation completes.
-        *
-        * @param title The new title.
-        */
         NavModel.prototype.setTitle = function (title) {
             this.title = title;
             if (this.isActive) {
@@ -350,24 +326,12 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
     var isRootedPath = /^#?\//;
     var isAbsoluteUrl = /^([a-z][a-z0-9+\-.]*:)?\/\//i;
 
-    /**
-     * Class used to configure a [[Router]] instance.
-     *
-     * @constructor
-     */
-    var RouterConfiguration = /** @class */ (function () {
+    var RouterConfiguration = (function () {
         function RouterConfiguration() {
             this.instructions = [];
             this.options = {};
             this.pipelineSteps = [];
         }
-        /**
-         * Adds a step to be run during the [[Router]]'s navigation pipeline.
-         *
-         * @param name The name of the pipeline slot to insert the step into.
-         * @param step The pipeline step.
-         * @chainable
-         */
         RouterConfiguration.prototype.addPipelineStep = function (name, step) {
             if (step === null || step === undefined) {
                 throw new Error('Pipeline step cannot be null or undefined.');
@@ -375,58 +339,22 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             this.pipelineSteps.push({ name: name, step: step });
             return this;
         };
-        /**
-         * Adds a step to be run during the [[Router]]'s authorize pipeline slot.
-         *
-         * @param step The pipeline step.
-         * @chainable
-         */
         RouterConfiguration.prototype.addAuthorizeStep = function (step) {
-            return this.addPipelineStep("authorize" /* Authorize */, step);
+            return this.addPipelineStep("authorize", step);
         };
-        /**
-         * Adds a step to be run during the [[Router]]'s preActivate pipeline slot.
-         *
-         * @param step The pipeline step.
-         * @chainable
-         */
         RouterConfiguration.prototype.addPreActivateStep = function (step) {
-            return this.addPipelineStep("preActivate" /* PreActivate */, step);
+            return this.addPipelineStep("preActivate", step);
         };
-        /**
-         * Adds a step to be run during the [[Router]]'s preRender pipeline slot.
-         *
-         * @param step The pipeline step.
-         * @chainable
-         */
         RouterConfiguration.prototype.addPreRenderStep = function (step) {
-            return this.addPipelineStep("preRender" /* PreRender */, step);
+            return this.addPipelineStep("preRender", step);
         };
-        /**
-         * Adds a step to be run during the [[Router]]'s postRender pipeline slot.
-         *
-         * @param step The pipeline step.
-         * @chainable
-         */
         RouterConfiguration.prototype.addPostRenderStep = function (step) {
-            return this.addPipelineStep("postRender" /* PostRender */, step);
+            return this.addPipelineStep("postRender", step);
         };
-        /**
-         * Configures a route that will be used if there is no previous location available on navigation cancellation.
-         *
-         * @param fragment The URL fragment to use as the navigation destination.
-         * @chainable
-         */
         RouterConfiguration.prototype.fallbackRoute = function (fragment) {
             this._fallbackRoute = fragment;
             return this;
         };
-        /**
-         * Maps one or more routes to be registered with the router.
-         *
-         * @param route The [[RouteConfig]] to map, or an array of [[RouteConfig]] to map.
-         * @chainable
-         */
         RouterConfiguration.prototype.map = function (route) {
             var _this = this;
             if (Array.isArray(route)) {
@@ -435,23 +363,10 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
             return this.mapRoute(route);
         };
-        /**
-         * Configures defaults to use for any view ports.
-         *
-         * @param viewPortConfig a view port configuration object to use as a
-         *  default, of the form { viewPortName: { moduleId } }.
-         * @chainable
-         */
         RouterConfiguration.prototype.useViewPortDefaults = function (viewPortConfig) {
             this.viewPortDefaults = viewPortConfig;
             return this;
         };
-        /**
-         * Maps a single route to be registered with the router.
-         *
-         * @param route The [[RouteConfig]] to map.
-         * @chainable
-         */
         RouterConfiguration.prototype.mapRoute = function (config) {
             this.instructions.push(function (router) {
                 var routeConfigs = _ensureArrayWithSingleRoutePerConfig(config);
@@ -467,22 +382,10 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             });
             return this;
         };
-        /**
-         * Registers an unknown route handler to be run when the URL fragment doesn't match any registered routes.
-         *
-         * @param config A string containing a moduleId to load, or a [[RouteConfig]], or a function that takes the
-         *  [[NavigationInstruction]] and selects a moduleId to load.
-         * @chainable
-         */
         RouterConfiguration.prototype.mapUnknownRoutes = function (config) {
             this.unknownRouteConfig = config;
             return this;
         };
-        /**
-         * Applies the current configuration to the specified [[Router]].
-         *
-         * @param router The [[Router]] to apply the configuration to.
-         */
         RouterConfiguration.prototype.exportToRouter = function (router) {
             var instructions = this.instructions;
             for (var i = 0, ii = instructions.length; i < ii; ++i) {
@@ -521,30 +424,12 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         return RouterConfiguration;
     }());
 
-    /**
-     * The primary class responsible for handling routing and navigation.
-     */
-    var Router = /** @class */ (function () {
-        /**
-         * @param container The [[Container]] to use when child routers.
-         * @param history The [[History]] implementation to delegate navigation requests to.
-         */
+    var Router = (function () {
         function Router(container, history) {
             var _this = this;
-            /**
-             * The parent router, or null if this instance is not a child router.
-             */
             this.parent = null;
             this.options = {};
-            /**
-             * The defaults used when a viewport lacks specified content
-             */
             this.viewPortDefaults = {};
-            /**
-             * Extension point to transform the document title before it is built and displayed.
-             * By default, child routers delegate to the parent router, and the app router
-             * returns the title unchanged.
-             */
             this.transformTitle = function (title) {
                 if (_this.parent) {
                     return _this.parent.transformTitle(title);
@@ -555,10 +440,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             this.history = history;
             this.reset();
         }
-        /**
-         * Fully resets the router's internal state. Primarily used internally by the framework when multiple calls to setRoot are made.
-         * Use with caution (actually, avoid using this). Do not use this to simply change your navigation model.
-         */
         Router.prototype.reset = function () {
             var _this = this;
             this.viewPorts = {};
@@ -585,36 +466,19 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             });
         };
         Object.defineProperty(Router.prototype, "isRoot", {
-            /**
-             * Gets a value indicating whether or not this [[Router]] is the root in the router tree. I.e., it has no parent.
-             */
             get: function () {
                 return !this.parent;
             },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
-        /**
-         * Registers a viewPort to be used as a rendering target for activated routes.
-         *
-         * @param viewPort The viewPort.
-         * @param name The name of the viewPort. 'default' if unspecified.
-         */
         Router.prototype.registerViewPort = function (viewPort, name) {
             name = name || 'default';
             this.viewPorts[name] = viewPort;
         };
-        /**
-         * Returns a Promise that resolves when the router is configured.
-         */
         Router.prototype.ensureConfigured = function () {
             return this._configuredPromise;
         };
-        /**
-         * Configures the router.
-         *
-         * @param callbackOrConfig The [[RouterConfiguration]] or a callback that takes a [[RouterConfiguration]].
-         */
         Router.prototype.configure = function (callbackOrConfig) {
             var _this = this;
             this.isConfigured = true;
@@ -635,12 +499,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 _this._resolveConfiguredPromise();
             });
         };
-        /**
-         * Navigates to a new location.
-         *
-         * @param fragment The URL fragment to use as the navigation destination.
-         * @param options The navigation options.
-         */
         Router.prototype.navigate = function (fragment, options) {
             if (!this.isConfigured && this.parent) {
                 return this.parent.navigate(fragment, options);
@@ -648,71 +506,37 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             this.isExplicitNavigation = true;
             return this.history.navigate(_resolveUrl(fragment, this.baseUrl, this.history._hasPushState), options);
         };
-        /**
-         * Navigates to a new location corresponding to the route and params specified. Equivallent to [[Router.generate]] followed
-         * by [[Router.navigate]].
-         *
-         * @param route The name of the route to use when generating the navigation location.
-         * @param params The route parameters to be used when populating the route pattern.
-         * @param options The navigation options.
-         */
         Router.prototype.navigateToRoute = function (route, params, options) {
             var path = this.generate(route, params);
             return this.navigate(path, options);
         };
-        /**
-         * Navigates back to the most recent location in history.
-         */
         Router.prototype.navigateBack = function () {
             this.isExplicitNavigationBack = true;
             this.history.navigateBack();
         };
-        /**
-         * Creates a child router of the current router.
-         *
-         * @param container The [[Container]] to provide to the child router. Uses the current [[Router]]'s [[Container]] if unspecified.
-         * @returns {Router} The new child Router.
-         */
         Router.prototype.createChild = function (container) {
             var childRouter = new Router(container || this.container.createChild(), this.history);
             childRouter.parent = this;
             return childRouter;
         };
-        /**
-         * Generates a URL fragment matching the specified route pattern.
-         *
-         * @param name The name of the route whose pattern should be used to generate the fragment.
-         * @param params The route params to be used to populate the route pattern.
-         * @param options If options.absolute = true, then absolute url will be generated; otherwise, it will be relative url.
-         * @returns {string} A string containing the generated URL fragment.
-         */
         Router.prototype.generate = function (nameOrRoute, params, options) {
             if (params === void 0) { params = {}; }
             if (options === void 0) { options = {}; }
-            // A child recognizer generates routes for potential child routes. Any potential child route is added
-            // to the childRoute property of params for the childRouter to recognize. When generating routes, we
-            // use the childRecognizer when childRoute params are available to generate a child router enabled route.
             var recognizer = 'childRoute' in params ? this._childRecognizer : this._recognizer;
             var hasRoute = recognizer.hasRoute(nameOrRoute);
             if (!hasRoute) {
                 if (this.parent) {
                     return this.parent.generate(nameOrRoute, params, options);
                 }
-                throw new Error("A route with name '" + nameOrRoute + "' could not be found. Check that `name: '" + nameOrRoute + "'` was specified in the route's config.");
+                throw new Error("A route with name '".concat(nameOrRoute, "' could not be found. Check that `name: '").concat(nameOrRoute, "'` was specified in the route's config."));
             }
             var path = recognizer.generate(nameOrRoute, params);
             var rootedPath = _createRootedPath(path, this.baseUrl, this.history._hasPushState, options.absolute);
-            return options.absolute ? "" + this.history.getAbsoluteRoot() + rootedPath : rootedPath;
+            return options.absolute ? "".concat(this.history.getAbsoluteRoot()).concat(rootedPath) : rootedPath;
         };
-        /**
-         * Creates a [[NavModel]] for the specified route config.
-         *
-         * @param config The route config.
-         */
         Router.prototype.createNavModel = function (config) {
             var navModel = new NavModel(this, 'href' in config
                 ? config.href
-                // potential error when config.route is a string[] ?
                 : config.route);
             navModel.title = config.title;
             navModel.order = config.nav;
@@ -721,16 +545,9 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             navModel.config = config;
             return navModel;
         };
-        /**
-         * Registers a new route with the router.
-         *
-         * @param config The [[RouteConfig]].
-         * @param navModel The [[NavModel]] to use for the route. May be omitted for single-pattern routes.
-         */
         Router.prototype.addRoute = function (config, navModel) {
             if (Array.isArray(config.route)) {
                 var routeConfigs = _ensureArrayWithSingleRoutePerConfig(config);
-                // the following is wrong. todo: fix this after TS refactoring release
                 routeConfigs.forEach(this.addRoute.bind(this));
                 return;
             }
@@ -762,7 +579,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 delete config.settings;
                 var withChild = JSON.parse(JSON.stringify(config));
                 config.settings = settings;
-                withChild.route = path + "/*childRoute";
+                withChild.route = "".concat(path, "/*childRoute");
                 withChild.hasChildRouter = true;
                 this._childRecognizer.add({
                     path: withChild.route,
@@ -783,37 +600,15 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                     navModel.order = ++this._fallbackOrder;
                 }
                 navigation.push(navModel);
-                // this is a potential error / inconsistency between browsers
-                //
-                // MDN: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
-                // If compareFunction(a, b) returns 0, leave a and b unchanged with respect to each other,
-                // but sorted with respect to all different elements.
-                // Note: the ECMAscript standard does not guarantee this behaviour,
-                // and thus not all browsers (e.g. Mozilla versions dating back to at least 2003) respect this.
                 navigation.sort(function (a, b) { return a.order - b.order; });
             }
         };
-        /**
-         * Gets a value indicating whether or not this [[Router]] or one of its ancestors has a route registered with the specified name.
-         *
-         * @param name The name of the route to check.
-         */
         Router.prototype.hasRoute = function (name) {
             return !!(this._recognizer.hasRoute(name) || this.parent && this.parent.hasRoute(name));
         };
-        /**
-         * Gets a value indicating whether or not this [[Router]] has a route registered with the specified name.
-         *
-         * @param name The name of the route to check.
-         */
         Router.prototype.hasOwnRoute = function (name) {
             return this._recognizer.hasRoute(name);
         };
-        /**
-         * Register a handler to use when the incoming URL fragment doesn't match any registered routes.
-         *
-         * @param config The moduleId, or a function that selects the moduleId, or a [[RouteConfig]].
-         */
         Router.prototype.handleUnknownRoutes = function (config) {
             var _this = this;
             if (!config) {
@@ -828,9 +623,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 });
             };
         };
-        /**
-         * Updates the document title using the current navigation instruction.
-         */
         Router.prototype.updateTitle = function () {
             var parentRouter = this.parent;
             if (parentRouter) {
@@ -842,10 +634,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
             return undefined;
         };
-        /**
-         * Updates the navigation routes with hrefs relative to the current location.
-         * Note: This method will likely move to a plugin in a future release.
-         */
         Router.prototype.refreshNavigation = function () {
             var nav = this.navigation;
             for (var i = 0, length_1 = nav.length; i < length_1; i++) {
@@ -858,13 +646,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 }
             }
         };
-        /**
-         * Sets the default configuration for the view ports. This specifies how to
-         *  populate a view port for which no module is specified. The default is
-         *  an empty view/view-model pair.
-         */
         Router.prototype.useViewPortDefaults = function ($viewPortDefaults) {
-            // a workaround to have strong typings while not requiring to expose interface ViewPortInstruction
             var viewPortDefaults = $viewPortDefaults;
             for (var viewPortName in viewPortDefaults) {
                 var viewPortConfig = viewPortDefaults[viewPortName];
@@ -873,14 +655,12 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 };
             }
         };
-        /**@internal */
         Router.prototype._refreshBaseUrl = function () {
             var parentRouter = this.parent;
             if (parentRouter) {
                 this.baseUrl = generateBaseUrl(parentRouter, parentRouter.currentInstruction);
             }
         };
-        /**@internal */
         Router.prototype._createNavigationInstruction = function (url, parentInstruction) {
             if (url === void 0) { url = ''; }
             if (parentInstruction === void 0) { parentInstruction = null; }
@@ -928,7 +708,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 var instruction = new NavigationInstruction(Object.assign({}, instructionInit, {
                     params: { path: fragment },
                     queryParams: urlRecognizationResults ? urlRecognizationResults.queryParams : {},
-                    config: null // config will be created by the catchAllHandler
+                    config: null
                 }));
                 result = evaluateNavigationStrategy(instruction, this.catchAllHandler);
             }
@@ -942,7 +722,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                         router: router,
                         parentInstruction: newParentInstruction,
                         parentCatchHandler: true,
-                        config: null // config will be created by the chained parent catchAllHandler
+                        config: null
                     }));
                     result = evaluateNavigationStrategy(instruction, router.catchAllHandler);
                 }
@@ -950,12 +730,11 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             if (result && parentInstruction) {
                 this.baseUrl = generateBaseUrl(this.parent, parentInstruction);
             }
-            return result || Promise.reject(new Error("Route not found: " + url));
+            return result || Promise.reject(new Error("Route not found: ".concat(url)));
         };
-        /**@internal */
         Router.prototype._findParentInstructionFromRouter = function (router, instruction) {
             if (instruction.router === router) {
-                instruction.fragment = router.baseUrl; // need to change the fragment in case of a redirect instead of moduleId
+                instruction.fragment = router.baseUrl;
                 return instruction;
             }
             else if (instruction.parentInstruction) {
@@ -963,7 +742,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
             return undefined;
         };
-        /**@internal */
         Router.prototype._parentCatchAllHandler = function (router) {
             if (router.catchAllHandler) {
                 return router;
@@ -973,9 +751,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
             return false;
         };
-        /**
-         * @internal
-         */
         Router.prototype._createRouteConfig = function (config, instruction) {
             var _this = this;
             return Promise
@@ -989,9 +764,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 }
                 return c;
             })
-                // typing here could be either RouteConfig or RedirectConfig
-                // but temporarily treat both as RouteConfig
-                // todo: improve typings precision
                 .then(function (c) { return typeof c === 'string' ? { moduleId: c } : c; })
                 .then(function (c) {
                 c.route = instruction.params.path;
@@ -1004,11 +776,9 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         };
         return Router;
     }());
-    /* @internal exported for unit testing */
     var generateBaseUrl = function (router, instruction) {
-        return "" + (router.baseUrl || '') + (instruction.getBaseUrl() || '');
+        return "".concat(router.baseUrl || '').concat(instruction.getBaseUrl() || '');
     };
-    /* @internal exported for unit testing */
     var validateRouteConfig = function (config) {
         if (typeof config !== 'object') {
             throw new Error('Invalid Route Config');
@@ -1021,7 +791,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             throw new Error('Invalid Route Config for "' + config.route + '": You must specify a "moduleId:", "redirect:", "navigationStrategy:", or "viewPorts:".');
         }
     };
-    /* @internal exported for unit testing */
     var evaluateNavigationStrategy = function (instruction, evaluator, context) {
         return Promise
             .resolve(evaluator.call(context, instruction))
@@ -1037,7 +806,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         });
     };
 
-    /**@internal exported for unit testing */
     var createNextFn = function (instruction, steps) {
         var index = -1;
         var next = function () {
@@ -1055,45 +823,30 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 return next.complete();
             }
         };
-        next.complete = createCompletionHandler(next, "completed" /* Completed */);
-        next.cancel = createCompletionHandler(next, "canceled" /* Canceled */);
-        next.reject = createCompletionHandler(next, "rejected" /* Rejected */);
+        next.complete = createCompletionHandler(next, "completed");
+        next.cancel = createCompletionHandler(next, "canceled");
+        next.reject = createCompletionHandler(next, "rejected");
         return next;
     };
-    /**@internal exported for unit testing */
     var createCompletionHandler = function (next, status) {
         return function (output) { return Promise
             .resolve({
             status: status,
             output: output,
-            completed: status === "completed" /* Completed */
+            completed: status === "completed"
         }); };
     };
 
-    /**
-     * The class responsible for managing and processing the navigation pipeline.
-     */
-    var Pipeline = /** @class */ (function () {
+    var Pipeline = (function () {
         function Pipeline() {
-            /**
-             * The pipeline steps. And steps added via addStep will be converted to a function
-             * The actualy running functions with correct step contexts of this pipeline
-             */
             this.steps = [];
         }
-        /**
-         * Adds a step to the pipeline.
-         *
-         * @param step The pipeline step.
-         */
         Pipeline.prototype.addStep = function (step) {
             var run;
             if (typeof step === 'function') {
                 run = step;
             }
             else if (typeof step.getSteps === 'function') {
-                // getSteps is to enable support open slots
-                // where devs can add multiple steps into the same slot name
                 var steps = step.getSteps();
                 for (var i = 0, l = steps.length; i < l; i++) {
                     this.addStep(steps[i]);
@@ -1106,11 +859,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             this.steps.push(run);
             return this;
         };
-        /**
-         * Runs the pipeline.
-         *
-         * @param instruction The navigation instruction to process.
-         */
         Pipeline.prototype.run = function (instruction) {
             var nextFn = createNextFn(instruction, this.steps);
             return nextFn();
@@ -1118,57 +866,26 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         return Pipeline;
     }());
 
-    /**
-    * Determines if the provided object is a navigation command.
-    * A navigation command is anything with a navigate method.
-    *
-    * @param obj The object to check.
-    */
     function isNavigationCommand(obj) {
         return obj && typeof obj.navigate === 'function';
     }
-    /**
-    * Used during the activation lifecycle to cause a redirect.
-    */
-    var Redirect = /** @class */ (function () {
-        /**
-         * @param url The URL fragment to use as the navigation destination.
-         * @param options The navigation options.
-         */
+    var Redirect = (function () {
         function Redirect(url, options) {
             if (options === void 0) { options = {}; }
             this.url = url;
             this.options = Object.assign({ trigger: true, replace: true }, options);
             this.shouldContinueProcessing = false;
         }
-        /**
-         * Called by the activation system to set the child router.
-         *
-         * @param router The router.
-         */
         Redirect.prototype.setRouter = function (router) {
             this.router = router;
         };
-        /**
-         * Called by the navigation pipeline to navigate.
-         *
-         * @param appRouter The router to be redirected.
-         */
         Redirect.prototype.navigate = function (appRouter) {
             var navigatingRouter = this.options.useAppRouter ? appRouter : (this.router || appRouter);
             navigatingRouter.navigate(this.url, this.options);
         };
         return Redirect;
     }());
-    /**
-     * Used during the activation lifecycle to cause a redirect to a named route.
-     */
-    var RedirectToRoute = /** @class */ (function () {
-        /**
-         * @param route The name of the route.
-         * @param params The parameters to be sent to the activation method.
-         * @param options The options to use for navigation.
-         */
+    var RedirectToRoute = (function () {
         function RedirectToRoute(route, params, options) {
             if (params === void 0) { params = {}; }
             if (options === void 0) { options = {}; }
@@ -1177,19 +894,9 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             this.options = Object.assign({ trigger: true, replace: true }, options);
             this.shouldContinueProcessing = false;
         }
-        /**
-         * Called by the activation system to set the child router.
-         *
-         * @param router The router.
-         */
         RedirectToRoute.prototype.setRouter = function (router) {
             this.router = router;
         };
-        /**
-         * Called by the navigation pipeline to navigate.
-         *
-         * @param appRouter The router to be redirected.
-         */
         RedirectToRoute.prototype.navigate = function (appRouter) {
             var navigatingRouter = this.options.useAppRouter ? appRouter : (this.router || appRouter);
             navigatingRouter.navigateToRoute(this.route, this.params, this.options);
@@ -1197,9 +904,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         return RedirectToRoute;
     }());
 
-    /**
-     * @internal exported for unit testing
-     */
     function _buildNavigationPlan(instruction, forceLifecycleMinimum) {
         var config = instruction.config;
         if ('redirect' in config) {
@@ -1210,7 +914,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         if (prevInstruction) {
             return buildTransitionPlans(instruction, prevInstruction, defaultViewPortConfigs, forceLifecycleMinimum);
         }
-        // first navigation, only need to prepare a few information for each viewport plan
         var viewPortPlans = {};
         var viewPortConfigs = config.viewPorts;
         for (var viewPortName in viewPortConfigs) {
@@ -1220,16 +923,12 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
             viewPortPlans[viewPortName] = {
                 name: viewPortName,
-                strategy: "replace" /* Replace */,
+                strategy: "replace",
                 config: viewPortConfig
             };
         }
         return Promise.resolve(viewPortPlans);
     }
-    /**
-     * Build redirect plan based on config of a navigation instruction
-     * @internal exported for unit testing
-     */
     var buildRedirectPlan = function (instruction) {
         var config = instruction.config;
         var router = instruction.router;
@@ -1240,11 +939,9 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             var originalInstructionParams = instruction.params;
             var redirectInstructionParams = redirectInstruction.params;
             for (var key in redirectInstructionParams) {
-                // If the param on the redirect points to another param, e.g. { route: first/:this, redirect: second/:this }
                 var val = redirectInstructionParams[key];
                 if (typeof val === 'string' && val[0] === ':') {
                     val = val.slice(1);
-                    // And if that param is found on the original instruction then use it
                     if (val in originalInstructionParams) {
                         params[key] = originalInstructionParams[val];
                     }
@@ -1254,9 +951,8 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 }
             }
             var redirectLocation = router.generate(redirectInstruction.config, params, instruction.options);
-            // Special handling for child routes
             for (var key in originalInstructionParams) {
-                redirectLocation = redirectLocation.replace(":" + key, originalInstructionParams[key]);
+                redirectLocation = redirectLocation.replace(":".concat(key), originalInstructionParams[key]);
             }
             var queryString = instruction.queryString;
             if (queryString) {
@@ -1265,10 +961,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             return Promise.resolve(new Redirect(redirectLocation));
         });
     };
-    /**
-     * @param viewPortPlans the Plan record that holds information about built plans
-     * @internal exported for unit testing
-     */
     var buildTransitionPlans = function (currentInstruction, previousInstruction, defaultViewPortConfigs, forceLifecycleMinimum) {
         var viewPortPlans = {};
         var newInstructionConfig = currentInstruction.config;
@@ -1279,8 +971,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             var prevViewPortInstruction = previousViewPortInstructions[viewPortName];
             var prevViewPortComponent = prevViewPortInstruction.component;
             var newInstructionViewPortConfigs = newInstructionConfig.viewPorts;
-            // if this is invoked on a viewport without any changes, based on new url,
-            // newViewPortConfig will be the existing viewport instruction
             var nextViewPortConfig = viewPortName in newInstructionViewPortConfigs
                 ? newInstructionViewPortConfigs[viewPortName]
                 : prevViewPortInstruction;
@@ -1290,33 +980,24 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             var viewPortActivationStrategy = determineActivationStrategy(currentInstruction, prevViewPortInstruction, nextViewPortConfig, hasNewParams, forceLifecycleMinimum);
             var viewPortPlan = viewPortPlans[viewPortName] = {
                 name: viewPortName,
-                // ViewPortInstruction can quack like a RouteConfig
                 config: nextViewPortConfig,
                 prevComponent: prevViewPortComponent,
                 prevModuleId: prevViewPortInstruction.moduleId,
                 strategy: viewPortActivationStrategy
             };
-            // recursively build nav plans for all existing child routers/viewports of this viewport
-            // this is possible because existing child viewports and routers already have necessary information
-            // to process the wildcard path from parent instruction
-            if (viewPortActivationStrategy !== "replace" /* Replace */ && prevViewPortInstruction.childRouter) {
+            if (viewPortActivationStrategy !== "replace" && prevViewPortInstruction.childRouter) {
                 var path = currentInstruction.getWildcardPath();
                 var task = prevViewPortInstruction
                     .childRouter
                     ._createNavigationInstruction(path, currentInstruction)
                     .then(function (childInstruction) {
                     viewPortPlan.childNavigationInstruction = childInstruction;
-                    return _buildNavigationPlan(childInstruction, 
-                    // is it safe to assume viewPortPlan has not been changed from previous assignment?
-                    // if so, can just use local variable viewPortPlanStrategy
-                    // there could be user code modifying viewport plan during _createNavigationInstruction?
-                    viewPortPlan.strategy === "invoke-lifecycle" /* InvokeLifecycle */)
+                    return _buildNavigationPlan(childInstruction, viewPortPlan.strategy === "invoke-lifecycle")
                         .then(function (childPlan) {
                         if (childPlan instanceof Redirect) {
                             return Promise.reject(childPlan);
                         }
                         childInstruction.plan = childPlan;
-                        // for bluebird ?
                         return null;
                     });
                 });
@@ -1328,18 +1009,12 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         }
         return Promise.all(pending).then(function () { return viewPortPlans; });
     };
-    /**
-     * @param newViewPortConfig if this is invoked on a viewport without any changes, based on new url, newViewPortConfig will be the existing viewport instruction
-     * @internal exported for unit testing
-     */
-    var determineActivationStrategy = function (currentNavInstruction, prevViewPortInstruction, newViewPortConfig, 
-    // indicates whether there is difference between old and new url params
-    hasNewParams, forceLifecycleMinimum) {
+    var determineActivationStrategy = function (currentNavInstruction, prevViewPortInstruction, newViewPortConfig, hasNewParams, forceLifecycleMinimum) {
         var newInstructionConfig = currentNavInstruction.config;
         var prevViewPortViewModel = prevViewPortInstruction.component.viewModel;
         var viewPortPlanStrategy;
         if (prevViewPortInstruction.moduleId !== newViewPortConfig.moduleId) {
-            viewPortPlanStrategy = "replace" /* Replace */;
+            viewPortPlanStrategy = "replace";
         }
         else if ('determineActivationStrategy' in prevViewPortViewModel) {
             viewPortPlanStrategy = prevViewPortViewModel.determineActivationStrategy.apply(prevViewPortViewModel, currentNavInstruction.lifecycleArgs);
@@ -1348,14 +1023,13 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             viewPortPlanStrategy = newInstructionConfig.activationStrategy;
         }
         else if (hasNewParams || forceLifecycleMinimum) {
-            viewPortPlanStrategy = "invoke-lifecycle" /* InvokeLifecycle */;
+            viewPortPlanStrategy = "invoke-lifecycle";
         }
         else {
-            viewPortPlanStrategy = "no-change" /* NoChange */;
+            viewPortPlanStrategy = "no-change";
         }
         return viewPortPlanStrategy;
     };
-    /**@internal exported for unit testing */
     var hasDifferentParameterValues = function (prev, next) {
         var prevParams = prev.params;
         var nextParams = next.params;
@@ -1394,11 +1068,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         return false;
     };
 
-    /**
-     * Transform a navigation instruction into viewport plan record object,
-     * or a redirect request if user viewmodel demands
-     */
-    var BuildNavigationPlanStep = /** @class */ (function () {
+    var BuildNavigationPlanStep = (function () {
         function BuildNavigationPlanStep() {
         }
         BuildNavigationPlanStep.prototype.run = function (navigationInstruction, next) {
@@ -1415,24 +1085,18 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         return BuildNavigationPlanStep;
     }());
 
-    /**
-     * @internal Exported for unit testing
-     */
     var loadNewRoute = function (routeLoader, navigationInstruction) {
         var loadingPlans = determineLoadingPlans(navigationInstruction);
         var loadPromises = loadingPlans.map(function (loadingPlan) { return loadRoute(routeLoader, loadingPlan.navigationInstruction, loadingPlan.viewPortPlan); });
         return Promise.all(loadPromises);
     };
-    /**
-     * @internal Exported for unit testing
-     */
     var determineLoadingPlans = function (navigationInstruction, loadingPlans) {
         if (loadingPlans === void 0) { loadingPlans = []; }
         var viewPortPlans = navigationInstruction.plan;
         for (var viewPortName in viewPortPlans) {
             var viewPortPlan = viewPortPlans[viewPortName];
             var childNavInstruction = viewPortPlan.childNavigationInstruction;
-            if (viewPortPlan.strategy === "replace" /* Replace */) {
+            if (viewPortPlan.strategy === "replace") {
                 loadingPlans.push({ viewPortPlan: viewPortPlan, navigationInstruction: navigationInstruction });
                 if (childNavInstruction) {
                     determineLoadingPlans(childNavInstruction, loadingPlans);
@@ -1453,9 +1117,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         }
         return loadingPlans;
     };
-    /**
-     * @internal Exported for unit testing
-     */
     var loadRoute = function (routeLoader, navigationInstruction, viewPortPlan) {
         var planConfig = viewPortPlan.config;
         var moduleId = planConfig ? planConfig.moduleId : null;
@@ -1485,25 +1146,15 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                     });
                 });
             }
-            // ts complains without this, though they are same
             return void 0;
         });
     };
-    /**
-     * Load a routed-component based on navigation instruction and route config
-     * @internal exported for unit testing only
-     */
     var loadComponent = function (routeLoader, navigationInstruction, config) {
         var router = navigationInstruction.router;
         var lifecycleArgs = navigationInstruction.lifecycleArgs;
         return Promise.resolve()
             .then(function () { return routeLoader.loadRoute(router, config, navigationInstruction); })
-            .then(
-        /**
-         * @param component an object carrying information about loaded route
-         * typically contains information about view model, childContainer, view and router
-         */
-        function (component) {
+            .then(function (component) {
             var viewModel = component.viewModel, childContainer = component.childContainer;
             component.router = router;
             component.config = config;
@@ -1518,36 +1169,20 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         });
     };
 
-    /**
-     * Abstract class that is responsible for loading view / view model from a route config
-     * The default implementation can be found in `aurelia-templating-router`
-     */
-    var RouteLoader = /** @class */ (function () {
+    var RouteLoader = (function () {
         function RouteLoader() {
         }
-        /**
-         * Load a route config based on its viewmodel / view configuration
-         */
-        // return typing: return typings used to be never
-        // as it was a throw. Changing it to Promise<any> should not cause any issues
         RouteLoader.prototype.loadRoute = function (router, config, navigationInstruction) {
             throw new Error('Route loaders must implement "loadRoute(router, config, navigationInstruction)".');
         };
         return RouteLoader;
     }());
 
-    /**
-     * A pipeline step responsible for loading a route config of a navigation instruction
-     */
-    var LoadRouteStep = /** @class */ (function () {
+    var LoadRouteStep = (function () {
         function LoadRouteStep(routeLoader) {
             this.routeLoader = routeLoader;
         }
-        /**@internal */
         LoadRouteStep.inject = function () { return [RouteLoader]; };
-        /**
-         * Run the internal to load route config of a navigation instruction to prepare for next steps in the pipeline
-         */
         LoadRouteStep.prototype.run = function (navigationInstruction, next) {
             return loadNewRoute(this.routeLoader, navigationInstruction)
                 .then(next, next.cancel);
@@ -1555,15 +1190,15 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         return LoadRouteStep;
     }());
 
-    /**
-     * A pipeline step for instructing a piepline to commit changes on a navigation instruction
-     */
-    var CommitChangesStep = /** @class */ (function () {
+    var CommitChangesStep = (function () {
         function CommitChangesStep() {
         }
         CommitChangesStep.prototype.run = function (navigationInstruction, next) {
             return navigationInstruction
-                ._commitChanges(/*wait to swap?*/ true)
+                ._commitChanges(true)
+                .then(function (delayJobs) {
+                return delayJobs.reduce(function (chain, job) { return chain.then(job); }, Promise.resolve());
+            })
                 .then(function () {
                 navigationInstruction._updateTitle();
                 return next();
@@ -1572,44 +1207,22 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         return CommitChangesStep;
     }());
 
-    /**
-     * An optional interface describing the available activation strategies.
-     * @internal Used internally.
-     */
     var InternalActivationStrategy;
     (function (InternalActivationStrategy) {
-        /**
-         * Reuse the existing view model, without invoking Router lifecycle hooks.
-         */
         InternalActivationStrategy["NoChange"] = "no-change";
-        /**
-         * Reuse the existing view model, invoking Router lifecycle hooks.
-         */
         InternalActivationStrategy["InvokeLifecycle"] = "invoke-lifecycle";
-        /**
-         * Replace the existing view model, invoking Router lifecycle hooks.
-         */
         InternalActivationStrategy["Replace"] = "replace";
     })(InternalActivationStrategy || (InternalActivationStrategy = {}));
-    /**
-     * The strategy to use when activating modules during navigation.
-     */
-    // kept for compat reason
     var activationStrategy = {
-        noChange: "no-change" /* NoChange */,
-        invokeLifecycle: "invoke-lifecycle" /* InvokeLifecycle */,
-        replace: "replace" /* Replace */
+        noChange: "no-change",
+        invokeLifecycle: "invoke-lifecycle",
+        replace: "replace"
     };
 
-    /**
-     * Recursively find list of deactivate-able view models
-     * and invoke the either 'canDeactivate' or 'deactivate' on each
-     * @internal exported for unit testing
-     */
     var processDeactivatable = function (navigationInstruction, callbackName, next, ignoreResult) {
         var plan = navigationInstruction.plan;
         var infos = findDeactivatable(plan, callbackName);
-        var i = infos.length; // query from inside out
+        var i = infos.length;
         function inspect(val) {
             if (ignoreResult || shouldContinue(val)) {
                 return iterate();
@@ -1632,10 +1245,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         }
         return iterate();
     };
-    /**
-     * Recursively find and returns a list of deactivate-able view models
-     * @internal exported for unit testing
-     */
     var findDeactivatable = function (plan, callbackName, list) {
         if (list === void 0) { list = []; }
         for (var viewPortName in plan) {
@@ -1657,9 +1266,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         }
         return list;
     };
-    /**
-     * @internal exported for unit testing
-     */
     var addPreviousDeactivatable = function (component, callbackName, list) {
         var childRouter = component.childRouter;
         if (childRouter && childRouter.currentInstruction) {
@@ -1675,13 +1281,10 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
         }
     };
-    /**
-     * @internal exported for unit testing
-     */
     var processActivatable = function (navigationInstruction, callbackName, next, ignoreResult) {
         var infos = findActivatable(navigationInstruction, callbackName);
         var length = infos.length;
-        var i = -1; // query from top down
+        var i = -1;
         function inspect(val, router) {
             if (ignoreResult || shouldContinue(val, router)) {
                 return iterate();
@@ -1705,10 +1308,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         }
         return iterate();
     };
-    /**
-     * Find list of activatable view model and add to list (3rd parameter)
-     * @internal exported for unit testing
-     */
     var findActivatable = function (navigationInstruction, callbackName, list, router) {
         if (list === void 0) { list = []; }
         var plan = navigationInstruction.plan;
@@ -1750,11 +1349,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         }
         return output;
     };
-    /**
-     * wraps a subscription, allowing unsubscribe calls even if
-     * the first value comes synchronously
-     */
-    var SafeSubscription = /** @class */ (function () {
+    var SafeSubscription = (function () {
         function SafeSubscription(subscriptionFunc) {
             this._subscribed = true;
             this._subscription = subscriptionFunc(this);
@@ -1766,7 +1361,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             get: function () {
                 return this._subscribed;
             },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         SafeSubscription.prototype.unsubscribe = function () {
@@ -1777,18 +1372,10 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         };
         return SafeSubscription;
     }());
-    /**
-     * A function to process return value from `activate`/`canActivate` steps
-     * Supports observable/promise
-     *
-     * For observable, resolve at first next() or on complete()
-     */
     var processPotential = function (obj, resolve, reject) {
-        // if promise like
         if (obj && typeof obj.then === 'function') {
             return Promise.resolve(obj).then(resolve).catch(reject);
         }
-        // if observable
         if (obj && typeof obj.subscribe === 'function') {
             var obs_1 = obj;
             return new SafeSubscription(function (sub) { return obs_1.subscribe({
@@ -1812,7 +1399,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 }
             }); });
         }
-        // else just resolve
         try {
             return resolve(obj);
         }
@@ -1821,10 +1407,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         }
     };
 
-    /**
-     * A pipeline step responsible for finding and activating method `canDeactivate` on a view model of a route
-     */
-    var CanDeactivatePreviousStep = /** @class */ (function () {
+    var CanDeactivatePreviousStep = (function () {
         function CanDeactivatePreviousStep() {
         }
         CanDeactivatePreviousStep.prototype.run = function (navigationInstruction, next) {
@@ -1832,10 +1415,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         };
         return CanDeactivatePreviousStep;
     }());
-    /**
-     * A pipeline step responsible for finding and activating method `canActivate` on a view model of a route
-     */
-    var CanActivateNextStep = /** @class */ (function () {
+    var CanActivateNextStep = (function () {
         function CanActivateNextStep() {
         }
         CanActivateNextStep.prototype.run = function (navigationInstruction, next) {
@@ -1843,10 +1423,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         };
         return CanActivateNextStep;
     }());
-    /**
-     * A pipeline step responsible for finding and activating method `deactivate` on a view model of a route
-     */
-    var DeactivatePreviousStep = /** @class */ (function () {
+    var DeactivatePreviousStep = (function () {
         function DeactivatePreviousStep() {
         }
         DeactivatePreviousStep.prototype.run = function (navigationInstruction, next) {
@@ -1854,10 +1431,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         };
         return DeactivatePreviousStep;
     }());
-    /**
-     * A pipeline step responsible for finding and activating method `activate` on a view model of a route
-     */
-    var ActivateNextStep = /** @class */ (function () {
+    var ActivateNextStep = (function () {
         function ActivateNextStep() {
         }
         ActivateNextStep.prototype.run = function (navigationInstruction, next) {
@@ -1866,10 +1440,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         return ActivateNextStep;
     }());
 
-    /**
-     * A multi-slots Pipeline Placeholder Step for hooking into a pipeline execution
-     */
-    var PipelineSlot = /** @class */ (function () {
+    var PipelineSlot = (function () {
         function PipelineSlot(container, name, alias) {
             this.steps = [];
             this.container = container;
@@ -1882,32 +1453,24 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         };
         return PipelineSlot;
     }());
-    /**
-     * Class responsible for creating the navigation pipeline.
-     */
-    var PipelineProvider = /** @class */ (function () {
+    var PipelineProvider = (function () {
         function PipelineProvider(container) {
             this.container = container;
             this.steps = [
                 BuildNavigationPlanStep,
                 CanDeactivatePreviousStep,
                 LoadRouteStep,
-                createPipelineSlot(container, "authorize" /* Authorize */),
+                createPipelineSlot(container, "authorize"),
                 CanActivateNextStep,
-                createPipelineSlot(container, "preActivate" /* PreActivate */, 'modelbind'),
-                // NOTE: app state changes start below - point of no return
+                createPipelineSlot(container, "preActivate", 'modelbind'),
                 DeactivatePreviousStep,
                 ActivateNextStep,
-                createPipelineSlot(container, "preRender" /* PreRender */, 'precommit'),
+                createPipelineSlot(container, "preRender", 'precommit'),
                 CommitChangesStep,
-                createPipelineSlot(container, "postRender" /* PostRender */, 'postcomplete')
+                createPipelineSlot(container, "postRender", 'postcomplete')
             ];
         }
-        /**@internal */
         PipelineProvider.inject = function () { return [aureliaDependencyInjection.Container]; };
-        /**
-         * Create the navigation pipeline.
-         */
         PipelineProvider.prototype.createPipeline = function (useCanDeactivateStep) {
             var _this = this;
             if (useCanDeactivateStep === void 0) { useCanDeactivateStep = true; }
@@ -1919,30 +1482,21 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             });
             return pipeline;
         };
-        /**@internal */
         PipelineProvider.prototype._findStep = function (name) {
-            // Steps that are not PipelineSlots are constructor functions, and they will automatically fail. Probably.
             return this.steps.find(function (x) { return x.slotName === name || x.slotAlias === name; });
         };
-        /**
-         * Adds a step into the pipeline at a known slot location.
-         */
         PipelineProvider.prototype.addStep = function (name, step) {
             var found = this._findStep(name);
             if (found) {
                 var slotSteps = found.steps;
-                // prevent duplicates
                 if (!slotSteps.includes(step)) {
                     slotSteps.push(step);
                 }
             }
             else {
-                throw new Error("Invalid pipeline slot name: " + name + ".");
+                throw new Error("Invalid pipeline slot name: ".concat(name, "."));
             }
         };
-        /**
-         * Removes a step from a slot in the pipeline
-         */
         PipelineProvider.prototype.removeStep = function (name, step) {
             var slot = this._findStep(name);
             if (slot) {
@@ -1950,10 +1504,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 slotSteps.splice(slotSteps.indexOf(step), 1);
             }
         };
-        /**
-         * Clears all steps from a slot in the pipeline
-         * @internal
-         */
         PipelineProvider.prototype._clearSteps = function (name) {
             if (name === void 0) { name = ''; }
             var slot = this._findStep(name);
@@ -1961,27 +1511,20 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 slot.steps = [];
             }
         };
-        /**
-         * Resets all pipeline slots
-         */
         PipelineProvider.prototype.reset = function () {
-            this._clearSteps("authorize" /* Authorize */);
-            this._clearSteps("preActivate" /* PreActivate */);
-            this._clearSteps("preRender" /* PreRender */);
-            this._clearSteps("postRender" /* PostRender */);
+            this._clearSteps("authorize");
+            this._clearSteps("preActivate");
+            this._clearSteps("preRender");
+            this._clearSteps("postRender");
         };
         return PipelineProvider;
     }());
-    /**@internal */
     var createPipelineSlot = function (container, name, alias) {
         return new PipelineSlot(container, name, alias);
     };
 
-    var logger = LogManager.getLogger('app-router');
-    /**
-     * The main application router.
-     */
-    var AppRouter = /** @class */ (function (_super) {
+    var logger = LogManager__namespace.getLogger('app-router');
+    var AppRouter = (function (_super) {
         __extends(AppRouter, _super);
         function AppRouter(container, history, pipelineProvider, events) {
             var _this = _super.call(this, container, history) || this;
@@ -1989,12 +1532,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             _this.events = events;
             return _this;
         }
-        /**@internal */
         AppRouter.inject = function () { return [aureliaDependencyInjection.Container, aureliaHistory.History, PipelineProvider, aureliaEventAggregator.EventAggregator]; };
-        /**
-         * Fully resets the router's internal state. Primarily used internally by the framework when multiple calls to setRoot are made.
-         * Use with caution (actually, avoid using this). Do not use this to simply change your navigation model.
-         */
         AppRouter.prototype.reset = function () {
             _super.prototype.reset.call(this);
             this.maxInstructionCount = 10;
@@ -2005,11 +1543,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 this._queue.length = 0;
             }
         };
-        /**
-         * Loads the specified URL.
-         *
-         * @param url The URL fragment to load.
-         */
         AppRouter.prototype.loadUrl = function (url) {
             var _this = this;
             return this
@@ -2020,38 +1553,20 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 restorePreviousLocation(_this);
             });
         };
-        /**
-         * Registers a viewPort to be used as a rendering target for activated routes.
-         *
-         * @param viewPort The viewPort. This is typically a <router-view/> element in Aurelia default impl
-         * @param name The name of the viewPort. 'default' if unspecified.
-         */
         AppRouter.prototype.registerViewPort = function (viewPort, name) {
             var _this = this;
-            // having strong typing without changing public API
             var $viewPort = viewPort;
             _super.prototype.registerViewPort.call(this, $viewPort, name);
-            // beside adding viewport to the registry of this instance
-            // AppRouter also configure routing/history to start routing functionality
-            // There are situation where there are more than 1 <router-view/> element at root view
-            // in that case, still only activate once via the following guard
             if (!this.isActive) {
                 var viewModel_1 = this._findViewModel($viewPort);
                 if ('configureRouter' in viewModel_1) {
-                    // If there are more than one <router-view/> element at root view
-                    // use this flag to guard against configure method being invoked multiple times
-                    // this flag is set inside method configure
                     if (!this.isConfigured) {
-                        // replace the real resolve with a noop to guarantee that any action in base class Router
-                        // won't resolve the configurePromise prematurely
                         var resolveConfiguredPromise_1 = this._resolveConfiguredPromise;
                         this._resolveConfiguredPromise = function () { };
                         return this
                             .configure(function (config) {
                             return Promise
                                 .resolve(viewModel_1.configureRouter(config, _this))
-                                // an issue with configure interface. Should be fixed there
-                                // todo: fix this via configure interface in router
                                 .then(function () { return config; });
                         })
                             .then(function () {
@@ -2064,37 +1579,24 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                     this.activate();
                 }
             }
-            // when a viewport is added dynamically to a root view that is already activated
-            // just process the navigation instruction
             else {
                 this._dequeueInstruction();
             }
             return Promise.resolve();
         };
-        /**
-         * Activates the router. This instructs the router to begin listening for history changes and processing instructions.
-         *
-         * @params options The set of options to activate the router with.
-         */
         AppRouter.prototype.activate = function (options) {
             if (this.isActive) {
                 return;
             }
             this.isActive = true;
-            // route handler property is responsible for handling url change
-            // the interface of aurelia-history isn't clear on this perspective
             this.options = Object.assign({ routeHandler: this.loadUrl.bind(this) }, this.options, options);
             this.history.activate(this.options);
             this._dequeueInstruction();
         };
-        /**
-         * Deactivates the router.
-         */
         AppRouter.prototype.deactivate = function () {
             this.isActive = false;
             this.history.deactivate();
         };
-        /**@internal */
         AppRouter.prototype._queueInstruction = function (instruction) {
             var _this = this;
             return new Promise(function (resolve) {
@@ -2103,19 +1605,16 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 _this._dequeueInstruction();
             });
         };
-        /**@internal */
         AppRouter.prototype._dequeueInstruction = function (instructionCount) {
             var _this = this;
             if (instructionCount === void 0) { instructionCount = 0; }
             return Promise.resolve().then(function () {
                 if (_this.isNavigating && !instructionCount) {
-                    // ts complains about inconsistent returns without void 0
                     return void 0;
                 }
                 var instruction = _this._queue.shift();
                 _this._queue.length = 0;
                 if (!instruction) {
-                    // ts complains about inconsistent returns without void 0
                     return void 0;
                 }
                 _this.isNavigating = true;
@@ -2145,10 +1644,10 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                 instruction.previousInstruction = _this.currentInstruction;
                 var maxInstructionCount = _this.maxInstructionCount;
                 if (!instructionCount) {
-                    _this.events.publish("router:navigation:processing" /* Processing */, { instruction: instruction });
+                    _this.events.publish("router:navigation:processing", { instruction: instruction });
                 }
                 else if (instructionCount === maxInstructionCount - 1) {
-                    logger.error(instructionCount + 1 + " navigation instructions have been attempted without success. Restoring last known good location.");
+                    logger.error("".concat(instructionCount + 1, " navigation instructions have been attempted without success. Restoring last known good location."));
                     restorePreviousLocation(_this);
                     return _this._dequeueInstruction(instructionCount + 1);
                 }
@@ -2165,7 +1664,6 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
                     .then(function (result) { return resolveInstruction(instruction, result, !!instructionCount, _this); });
             });
         };
-        /**@internal */
         AppRouter.prototype._findViewModel = function (viewPort) {
             if (this.container.viewModel) {
                 return this.container.viewModel;
@@ -2187,7 +1685,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
     var processResult = function (instruction, result, instructionCount, router) {
         if (!(result && 'completed' in result && 'output' in result)) {
             result = result || {};
-            result.output = new Error("Expected router pipeline to return a navigation result, but got [" + JSON.stringify(result) + "] instead.");
+            result.output = new Error("Expected router pipeline to return a navigation result, but got [".concat(JSON.stringify(result), "] instead."));
         }
         var finalResult = null;
         var navigationCommandResult = null;
@@ -2204,7 +1702,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             }
         }
         return Promise.resolve(navigationCommandResult)
-            .then(function (_) { return router._dequeueInstruction(instructionCount + 1); })
+            .then(function () { return router._dequeueInstruction(instructionCount + 1); })
             .then(function (innerResult) { return finalResult || innerResult || result; });
     };
     var resolveInstruction = function (instruction, result, isInnerInstruction, router) {
@@ -2223,21 +1721,21 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
             router.couldDeactivate = false;
             var eventName = void 0;
             if (result.output instanceof Error) {
-                eventName = "router:navigation:error" /* Error */;
+                eventName = "router:navigation:error";
             }
             else if (!result.completed) {
-                eventName = "router:navigation:canceled" /* Canceled */;
+                eventName = "router:navigation:canceled";
             }
             else {
                 var queryString = instruction.queryString ? ('?' + instruction.queryString) : '';
                 router.history.previousLocation = instruction.fragment + queryString;
-                eventName = "router:navigation:success" /* Success */;
+                eventName = "router:navigation:success";
             }
             eventAggregator.publish(eventName, eventArgs);
-            eventAggregator.publish("router:navigation:complete" /* Complete */, eventArgs);
+            eventAggregator.publish("router:navigation:complete", eventArgs);
         }
         else {
-            eventAggregator.publish("router:navigation:child:complete" /* ChildComplete */, eventArgs);
+            eventAggregator.publish("router:navigation:child:complete", eventArgs);
         }
         return result;
     };
@@ -2254,9 +1752,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         }
     };
 
-    /**
-    * The status of a Pipeline.
-    */
+    exports.PipelineStatus = void 0;
     (function (PipelineStatus) {
         PipelineStatus["Completed"] = "completed";
         PipelineStatus["Canceled"] = "canceled";
@@ -2264,10 +1760,7 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         PipelineStatus["Running"] = "running";
     })(exports.PipelineStatus || (exports.PipelineStatus = {}));
 
-    /**
-     * A list of known router events used by the Aurelia router
-     * to signal the pipeline has come to a certain state
-     */
+    exports.RouterEvent = void 0;
     (function (RouterEvent) {
         RouterEvent["Processing"] = "router:navigation:processing";
         RouterEvent["Error"] = "router:navigation:error";
@@ -2277,34 +1770,11 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
         RouterEvent["ChildComplete"] = "router:navigation:child:complete";
     })(exports.RouterEvent || (exports.RouterEvent = {}));
 
-    /**
-     * Available pipeline slot names to insert interceptor into router pipeline
-     */
+    exports.PipelineSlotName = void 0;
     (function (PipelineSlotName) {
-        /**
-         * Authorization slot. Invoked early in the pipeline,
-         * before `canActivate` hook of incoming route
-         */
         PipelineSlotName["Authorize"] = "authorize";
-        /**
-         * Pre-activation slot. Invoked early in the pipeline,
-         * Invoked timing:
-         *   - after Authorization slot
-         *   - after canActivate hook on new view model
-         *   - before deactivate hook on old view model
-         *   - before activate hook on new view model
-         */
         PipelineSlotName["PreActivate"] = "preActivate";
-        /**
-         * Pre-render slot. Invoked later in the pipeline
-         * Invokcation timing:
-         *   - after activate hook on new view model
-         *   - before commit step on new navigation instruction
-         */
         PipelineSlotName["PreRender"] = "preRender";
-        /**
-         * Post-render slot. Invoked last in the pipeline
-         */
         PipelineSlotName["PostRender"] = "postRender";
     })(exports.PipelineSlotName || (exports.PipelineSlotName = {}));
 
@@ -2330,5 +1800,5 @@ define('aurelia-router', ['exports', 'aurelia-logging', 'aurelia-dependency-inje
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
-});
+}));
 //# sourceMappingURL=aurelia-router.js.map
